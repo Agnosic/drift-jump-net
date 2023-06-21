@@ -133,7 +133,7 @@ class SDENet_mnist(nn.Module):
         self.drift = Drift(dim)
         self.diffusion = Diffusion(dim, dim)
         self.fc_layers = nn.Sequential(norm(dim), nn.ReLU(inplace=True), nn.AdaptiveAvgPool2d((1, 1)), Flatten(),
-                                       nn.Linear(dim, 10))
+                                       nn.Linear(dim, num_classes))
         self.deltat = 6. / self.layer_depth
         self.apply(init_params)
         self.sigma = 500
@@ -147,8 +147,9 @@ class SDENet_mnist(nn.Module):
             diffusion_term = torch.unsqueeze(diffusion_term, 3)
             for i in range(self.layer_depth):
                 t = 6 * (float(i)) / self.layer_depth
-                out = out + self.drift(t, out) * self.deltat + diffusion_term * math.sqrt(
-                    self.deltat) * torch.randn_like(out).to(x)
+                out = out + self.drift(t, out) * self.deltat
+                # out = out + self.drift(t, out) * self.deltat + diffusion_term * math.sqrt(
+                #     self.deltat) * torch.randn_like(out).to(x)
             final_out = self.fc_layers(out)
         else:
             t = 0

@@ -22,10 +22,10 @@ parser = argparse.ArgumentParser(description='PyTorch SDE-Net Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate of drift net')
 parser.add_argument('--lr2', default=0.01, type=float, help='learning rate of diffusion net')
 parser.add_argument('--training_out', action='store_false', default=True, help='training_with_out')
-parser.add_argument('--epochs', type=int, default=40, help='number of epochs to train')
+parser.add_argument('--epochs', type=int, default=160, help='number of epochs to train')
 parser.add_argument('--eva_iter', default=5, type=int, help='number of passes when evaluation')
 parser.add_argument('--batch_size', type=int, default=128, help='input batch size for training')
-parser.add_argument('--imageSize', type=int, default=28, help='the height / width of the input image to network')
+parser.add_argument('--imageSize', type=int, default=32, help='the height / width of the input image to network')
 parser.add_argument('--test_batch_size', type=int, default=1000)
 parser.add_argument('--gpu', type=int, default=0)
 parser.add_argument('--seed', type=float, default=0)
@@ -55,19 +55,22 @@ train_loader_inDomain, test_loader_inDomain = DataLoader(DoubleMnistDataset('./d
 # Model
 print('==> Building model..')
 net = models.SDENet_mnist(layer_depth=6, num_classes=10, dim=64)
+# net = models.Drift1(dim=64)
+
 net = net.to(device)
 
 
 real_label = 0
 fake_label = 1
 
-criterion = nn.MultiLabelSoftMarginLoss()
-criterion2 = nn.BCEWithLogitsLoss()
+criterion = nn.CrossEntropyLoss()
+criterion2 = nn.BCELoss()
 
-optimizer_F = optim.Adam([ {'params': net.downsampling_layers.parameters()}, {'params': net.drift.parameters()},
-{'params': net.fc_layers.parameters()}])
+optimizer_F = optim.SGD([ {'params': net.downsampling_layers.parameters()}, {'params': net.drift.parameters()},
+{'params': net.fc_layers.parameters()}], lr=args.lr, momentum=0.9, weight_decay=5e-4)
 
-optimizer_G = optim.Adam([ {'params': net.diffusion.parameters()}])
+optimizer_G = optim.SGD([ {'params': net.diffusion.parameters()}], lr=args.lr2, momentum=0.9, weight_decay=5e-4)
+
 
 #use a smaller sigma during training for training stability
 net.sigma = 20
@@ -85,12 +88,12 @@ def train(epoch):
 
     ##training with in-domain data
     for batch_idx, (inputs, targets) in enumerate(tqdm(train_loader_inDomain)):
-        inputs, targets = inputs.to(device), targets.to(device)
-        print(targets[0].cpu().detach().numpy())
+        inputs, targets = inputs.to(device), targets.float().to(device)
+        # print(targets[0].cpu().detach().numpy())
         import matplotlib.pyplot as plt
         # Mark each data value and customize the linestyle:
-        plt.imshow(inputs[0][0].cpu().detach().numpy())
-        plt.show()
+        # plt.imshow(inputs[0][0].cpu().detach().numpy())
+        # plt.show()
         optimizer_F.zero_grad()
         outputs = net(inputs)
         loss = criterion(outputs, targets)
@@ -98,14 +101,24 @@ def train(epoch):
         optimizer_F.step()
         train_loss += loss.item()
         _, predicted = outputs.max(1)
+        # print(f"predicted: {predicted}")
+        # print(f"input: {inputs}")
+        # print(f"output: {predicted}")
         total += targets.size(0)
         predicted = outputs.detach().cpu().numpy()
         targets_true = targets.detach().cpu().numpy()
         for i in range(len(targets_true)):
             p = predicted[i].argsort()[-2:][::-1]
             t = targets_true[i].argsort()[-2:][::-1]
+            # if batch_idx % 100 == 0:
+            #     print(f"p={p}")
+            #     print(f"t={p}")
+
             if (p==t).all():
                 correct += 1
+            elif (p==t).any():
+                correct += 0.5
+
 
 
         # correct += predicted.eq(targets).sum().item()
@@ -150,7 +163,7 @@ def test(epoch):
 
 for epoch in range(0, args.epochs):
     train(epoch)
-    test(epoch)
+    # test(epoch)
     if epoch in args.decreasing_lr:
         for param_group in optimizer_F.param_groups:
             param_group['lr'] *= args.droprate

@@ -9,8 +9,11 @@ from torchvision import datasets, transforms
 
 from torchvision import datasets
 
+DIGITS_TO_KEY = {0: 0, 2: 1, 4: 2, 9: 3}
+
 def get_prediction_vector_from_dir_name(dir_name):
     label = [0] * 10
+
 
     for digit in list(map(int, dir_name)):
         label[digit] += 1
