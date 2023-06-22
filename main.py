@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -37,7 +38,6 @@ device = torch.device('cuda:' + str(args.gpu) if torch.cuda.is_available() else 
 # device = 'mps'
 torch.manual_seed(args.seed)
 random.seed(args.seed)
-device = 'mps'
 if device == 'cuda':
     cudnn.benchmark = True
     torch.cuda.manual_seed(args.seed)
@@ -49,8 +49,8 @@ transform_train = transforms.Compose([
         transforms.ToTensor()
     ])
 
-train_loader_inDomain, test_loader_inDomain = DataLoader(DoubleMnistDataset('./double_mnist/train', transform=transform_train), batch_size = args.batch_size, shuffle=True), \
-                                              DataLoader(DoubleMnistDataset('./double_mnist/test', transform=transform_train), batch_size = args.batch_size, shuffle=True)
+train_loader_inDomain, test_loader_inDomain = DataLoader(DoubleMnistDataset('../double_mnist/train', transform=transform_train), batch_size = args.batch_size, shuffle=True, drop_last=True), \
+                                              DataLoader(DoubleMnistDataset('../double_mnist/test', transform=transform_train), batch_size = args.batch_size, shuffle=True, drop_last=True)
 
 # Model
 print('==> Building model..')
@@ -60,8 +60,8 @@ net = models.SDENet_mnist(layer_depth=6, num_classes=10, dim=64)
 net = net.to(device)
 
 
-real_label = 0
-fake_label = 1
+real_label = 1.
+fake_label = 0.
 
 criterion = nn.CrossEntropyLoss()
 criterion2 = nn.BCELoss()
@@ -73,7 +73,7 @@ optimizer_G = optim.SGD([ {'params': net.diffusion.parameters()}], lr=args.lr2, 
 
 
 #use a smaller sigma during training for training stability
-net.sigma = 20
+net.sigma = 1
 
 # Training
 def train(epoch):
@@ -85,23 +85,20 @@ def train(epoch):
     total = 0
     train_loss_out = 0
     train_loss_in = 0
+    import sys
 
     ##training with in-domain data
     for batch_idx, (inputs, targets) in enumerate(tqdm(train_loader_inDomain)):
         inputs, targets = inputs.to(device), targets.float().to(device)
         # print(targets[0].cpu().detach().numpy())
-        import matplotlib.pyplot as plt
         # Mark each data value and customize the linestyle:
-        # plt.imshow(inputs[0][0].cpu().detach().numpy())
-        # plt.show()
         optimizer_F.zero_grad()
         outputs = net(inputs)
         loss = criterion(outputs, targets)
         loss.backward()
         optimizer_F.step()
         train_loss += loss.item()
-        _, predicted = outputs.max(1)
-        # print(f"predicted: {predicted}")
+        # _, predicted = outputs.max(1)        # print(f"predicted: {predicted}")
         # print(f"input: {inputs}")
         # print(f"output: {predicted}")
         total += targets.size(0)
@@ -129,7 +126,8 @@ def train(epoch):
         loss_in = criterion2(predict_in, label.float())
         loss_in.backward()
         label.fill_(fake_label)
-        inputs_out = 2*torch.randn(args.batch_size,1, args.imageSize, args.imageSize, device = device)+inputs
+        inputs_out = 2*torch.randn(args.batch_size,1, args.imageSize, args.imageSize, device = device) + inputs
+        # print(inputs_out[0][0].detach().cpu().numpy())
         predict_out = net(inputs_out, training_diffusion=True)
         loss_out = criterion2(predict_out, label.float())
         loss_out.backward()

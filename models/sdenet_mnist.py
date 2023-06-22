@@ -147,9 +147,8 @@ class SDENet_mnist(nn.Module):
             diffusion_term = torch.unsqueeze(diffusion_term, 3)
             for i in range(self.layer_depth):
                 t = 6 * (float(i)) / self.layer_depth
-                out = out + self.drift(t, out) * self.deltat
-                # out = out + self.drift(t, out) * self.deltat + diffusion_term * math.sqrt(
-                #     self.deltat) * torch.randn_like(out).to(x)
+                out = out + self.drift(t, out) * self.deltat + diffusion_term * math.sqrt(
+                    self.deltat) * torch.randn_like(out).to(x)
             final_out = self.fc_layers(out)
         else:
             t = 0
