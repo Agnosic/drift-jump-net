@@ -57,6 +57,7 @@ if args.network == 'resnet':
     args.eva_iter = 1
 elif args.network == 'sdenet':
     model = models.SDENet_mnist(layer_depth=6, num_classes=10, dim=64)
+    model.sigma = 10
 elif args.network == 'mc_dropout':
     model = models.Resnet_dropout()
 
@@ -71,7 +72,7 @@ transform_train = transforms.Compose([
         transforms.Resize((args.imageSize, args.imageSize)),
         transforms.ToTensor()
     ])
-test_loader = DataLoader(DoubleMnistDataset('./double_mnist/test', transform=transform_train), batch_size = args.test_batch_size, shuffle=True, drop_last=True)
+test_loader = DataLoader(DoubleMnistDataset('../double_mnist/test', transform=transform_train), batch_size = args.test_batch_size, shuffle=True, drop_last=True)
 
 # _, test_loader = data_loader.getDataSet(args.dataset, args.batch_size, args.test_batch_size, args.imageSize)
 
@@ -95,7 +96,6 @@ def generate_target():
 
     with torch.no_grad():
         for data, targets in test_loader:
-            total += data.size(0)
             data, targets = data.to(device), targets.to(device)
             batch_output = 0
             for j in range(args.eva_iter):
@@ -103,7 +103,7 @@ def generate_target():
                 batch_output = batch_output + F.softmax(current_batch, dim=1)
             batch_output = batch_output/args.eva_iter
             # compute the accuracy
-            _, predicted = batch_output.max(1)
+            # _, predicted = batch_output.max(1)
             total += targets.size(0)
             predicted = batch_output.detach().cpu().numpy()
             targets_true = targets.detach().cpu().numpy()
