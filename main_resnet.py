@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from torchvision import datasets, transforms
 parser = argparse.ArgumentParser(description='PyTorch ResNet Training')
-parser.add_argument('--epochs', type=int, default=100, help='number of epochs to train')
+parser.add_argument('--epochs', type=int, default=40, help='number of epochs to train')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
 parser.add_argument('--dataset', default='mnist', help='cifar10 | svhn')
 parser.add_argument('--batch-size', type=int, default=128, help='input batch size for training')
@@ -29,7 +29,6 @@ args = parser.parse_args()
 device = torch.device('cuda:' + str(args.gpu) if torch.cuda.is_available() else 'cpu')
 
 torch.manual_seed(args.seed)
-device = 'mps'
 if device == 'cuda':
     cudnn.benchmark = True
     torch.cuda.manual_seed(args.seed)
@@ -39,8 +38,8 @@ transform_train = transforms.Compose([
         transforms.ToTensor()
     ])
 print('load data: ', args.dataset)
-train_loader = DataLoader(DoubleMnistDataset('./double_mnist/train', transform=transform_train), batch_size = args.batch_size, shuffle=True, drop_last=True)
-test_loader = DataLoader(DoubleMnistDataset('./double_mnist/test', transform=transform_train), batch_size = args.batch_size, shuffle=True, drop_last=True)
+train_loader = DataLoader(DoubleMnistDataset('../double_mnist/train', transform=transform_train), batch_size = args.batch_size, shuffle=True, drop_last=True)
+test_loader = DataLoader(DoubleMnistDataset('../double_mnist/test', transform=transform_train), batch_size = args.batch_size, shuffle=True, drop_last=True)
 
 
 
