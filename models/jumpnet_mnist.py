@@ -137,7 +137,6 @@ class SDENet_mnist(nn.Module):
         self.deltat = 6. / self.layer_depth
         self.apply(init_params)
         self.sigma = 10
-        # self.lambda = 10
 
     def forward(self, x, training_diffusion=False):
         out = self.downsampling_layers(x)
@@ -149,8 +148,6 @@ class SDENet_mnist(nn.Module):
             #now the magic begins
             for i in range(self.layer_depth):
                 t = 6 * (float(i)) / self.layer_depth
-                #out = out + self.drift(t, out) * self.deltat + diffusion_term * math.sqrt(
-                #    self.deltat) * torch.randn_like(out).to(x)
                 out = out + self.drift(t, out) * self.deltat \
                       + diffusion_term * torch.poisson(self.deltat*torch.ones_like(out)).to(x)
 
