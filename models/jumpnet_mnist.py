@@ -13,7 +13,7 @@ import random
 import torch.nn.init as init
 import math
 
-__all__ = ['SDENet_mnist']
+__all__ = ['JumpNet_mnist']
 
 
 def init_params(net):
@@ -117,9 +117,9 @@ class Flatten(nn.Module):
         return x.view(-1, shape)
 
 
-class SDENet_mnist(nn.Module):
+class JumpNet_mnist(nn.Module):
     def __init__(self, layer_depth, num_classes=10, dim=64):
-        super(SDENet_mnist, self).__init__()
+        super(JumpNet_mnist, self).__init__()
         self.layer_depth = layer_depth
         self.downsampling_layers = nn.Sequential(
             nn.Conv2d(1, dim, 3, 1),
@@ -159,7 +159,7 @@ class SDENet_mnist(nn.Module):
 
 
 def test():
-    model = SDENet_mnist(layer_depth=10, num_classes=10, dim=64)
+    model = JumpNet_mnist(layer_depth=10, num_classes=10, dim=64)
     return model
 
 
