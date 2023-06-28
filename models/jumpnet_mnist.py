@@ -142,14 +142,15 @@ class JumpNet_mnist(nn.Module):
         out = self.downsampling_layers(x)
         if not training_diffusion:
             t = 0
-            diffusion_term = self.sigma * self.diffusion(t, out)
+            #diffusion_term = self.sigma * self.diffusion(t, out)
+            diffusion_term = self.diffusion(t, out)
             diffusion_term = torch.unsqueeze(diffusion_term, 2)
             diffusion_term = torch.unsqueeze(diffusion_term, 3)
             #now the magic begins
             for i in range(self.layer_depth):
                 t = 6 * (float(i)) / self.layer_depth
                 out = out + self.drift(t, out) * self.deltat \
-                      + diffusion_term * torch.poisson(self.deltat*10*torch.ones_like(out)).to(x)
+                      + diffusion_term * torch.poisson(self.deltat*torch.ones_like(out)).to(x)
 
             final_out = self.fc_layers(out)
         else:
